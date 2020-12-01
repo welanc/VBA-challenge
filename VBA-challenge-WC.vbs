@@ -22,18 +22,22 @@ Sub Stocks():
         '-------------------------------------------------
         
         'Get last row of data (based on first column)
-        Dim Last_Entry As Long
-        Last_Entry = Cells(Rows.Count, 1).End(xlUp).Row
-        
+        Dim Last_Row As Long
+        Last_Row = Cells(Rows.Count, 1).End(xlUp).Row
+    
         'Set row number for summarised data, starting in row 2
         Dim Summary As Long
         Summary = 2
         
-        'Set Yearly Change variables
+        'Set Opening Price variable
+        Dim Opening_Price As Double
+        Opening_Price = 0
+        
+        'Set Yearly Change variable
         Dim Yearly_Diff As Double
         Yearly_Diff = 0
         
-        'Set Percentage Change variables
+        'Set Percentage Change variable
         Dim Percent_Diff As Double
         Percent_Diff = 0
         
@@ -60,14 +64,13 @@ Sub Stocks():
         Cells(1, 16).Value = "Value"
         
         
-        
             'Create loop to summarise stock data
-            For i = 2 To Last_Entry
+            For i = 2 To Last_Row
                 
                 
                 'CHALLENGE: if statement to check for
                 'greatest increase/decrease and stock volume
-                If i = Last_Entry Then
+                If i = Last_Row Then
                     
                     'CHALLENGE: Find the greatest increase/decrease and stock volume in the summarised data
                     Max_Increase = Application.WorksheetFunction.Max(Range("K2:K" & Summary))
@@ -89,29 +92,47 @@ Sub Stocks():
                 
                 
                 'Check for different stock ticker and add new line for new ticker
-                ElseIf Cells(i + 1, 1).Value <> Cells(i, 1).Value And Cells(i, 6).Value <> 0 Then
+                'ElseIf Cells(i + 1, 1).Value <> Cells(i, 1).Value And Cells(i, 6).Value <> 0 Then
+                ElseIf Cells(i - 1, 1).Value <> Cells(i, 1).Value Then
                     
-                    'Calculate Percentage Change
-                    Percent_Diff = Yearly_Diff / (Cells(i, 6).Value - Yearly_Diff)
+                    'Store Opening Price
+                    Opening_Price = Cells(i, 3).Value
+                
+                ElseIf Cells(i + 1, 1).Value <> Cells(i, 1).Value Then
+                           
+                    'Get ticker value
+                    Ticker = Cells(i, 1).Value
                     
-                    'Add cumulative data to ticker via subroutine stockloop
-                    Call stock_loop(i, Ticker, Stock_Volume, Percent_Diff, Yearly_Diff, Summary)
-
-                'Check if Percentage Change is being divided by 0 (result = math error)
-                'and if so, hard code Percent_Diff to 0
-                ElseIf Cells(i + 1, 1).Value <> Cells(i, 1).Value And Cells(i, 6).Value = 0 Then
+                    'Calculate Total Stock Volume
+                    Stock_Volume = Stock_Volume + Cells(i, 7).Value
                     
-                    'Hard code Percentage Change to 0
-                    Percent_Diff = 0
+                    'Calculate Yearly Difference
+                    Yearly_Diff = Cells(i, 6).Value - Opening_Price
                     
-                    'Add cumulative data to ticker via subroutine stockloop
-                    Call stock_loop(i, Ticker, Stock_Volume, Percent_Diff, Yearly_Diff, Summary)
+                    'Calculate Percentage Difference via subroutine to check if Divisor = 0
+                    Call Stock_Loop(Percent_Diff, Yearly_Diff, i, Summary)
                     
+                    'Output individual ticker data
+                    Cells(Summary, 9).Value = Ticker
+                    Cells(Summary, 10).Value = Yearly_Diff
+                    Cells(Summary, 11).Value = Percent_Diff
+                    Cells(Summary, 12).Value = Stock_Volume
+                    
+                    'Set number formats
+                    Cells(Summary, 11).NumberFormat = "0.00%"
+                    'Additional number formatting to make stock volume more readable
+                    'Cells(summ_row, 12).NumberFormat = "#,##0"
+                            
+                    'Increment Summary to next row
+                    Summary = Summary + 1
+                    
+                    'Reset Yearly Change and Stock Volume for the next ticker
+                    Yearly_Diff = 0
+                    Stock_Volume = 0
                     
                 Else
                     
-                    'Incrementally calculate Yearly Change and Stock Volume for the current ticker
-                    Yearly_Diff = Yearly_Diff + (Cells(i + 1, 6).Value - Cells(i, 6).Value)
+                    'Incrementally calculate Stock Volume for the current ticker
                     Stock_Volume = Stock_Volume + Cells(i, 7).Value
                     
                     'Reset Percentage Change
@@ -126,39 +147,29 @@ Sub Stocks():
 
 End Sub
 
-Sub stock_loop(index, tick_loop, stock_vol_loop, pc_diff_loop, yr_diff_loop, summ_row):
+Sub Stock_Loop(pc_diff_loop, yr_diff_loop, index, summ_row):
                 
-    'Get ticker value
-    tick_loop = Cells(index, 1).Value
-    
-    'Calculate Total Stock Volume
-    stock_vol_loop = stock_vol_loop + Cells(index, 7).Value
-    
-    'Output individual ticker data
-    Cells(summ_row, 9).Value = tick_loop
-    Cells(summ_row, 10).Value = yr_diff_loop
-    Cells(summ_row, 11).Value = pc_diff_loop
-    Cells(summ_row, 12).Value = stock_vol_loop
-    
-    If yr_diff_loop > 0 Then
-        Cells(summ_row, 10).Interior.ColorIndex = 4
-    
-    ElseIf yr_diff_loop < 0 Then
-        Cells(summ_row, 10).Interior.ColorIndex = 3
+    'Check if Percentage Difference is being divided by 0
+    If (Cells(index, 6).Value - yr_diff_loop) = 0 Then
+        'Hard code Percentage Difference to 0
+        pc_diff_loop = 0
+        
+    Else
+        'Calculate Percentage Difference
+        pc_diff_loop = yr_diff_loop / (Cells(index, 6).Value - yr_diff_loop)
     
     End If
     
-    'Set number formats
-    Cells(summ_row, 11).NumberFormat = "0.00%"
-    'Additional number formatting to make stock volume more readable
-    'Cells(summ_row, 12).NumberFormat = "#,##0"
-            
-    'Increment Summary to next row
-    summ_row = summ_row + 1
+    'Format Cell Colours to Yearly Difference summarised data
+    If yr_diff_loop > 0 Then
+        'Format cell colour green for positive Yearly Difference
+        Cells(summ_row, 10).Interior.ColorIndex = 4
     
-    'Reset Yearly Change and Stock Volume for the next ticker
-    yr_diff_loop = 0
-    stock_vol_loop = 0
+    ElseIf yr_diff_loop < 0 Then
+        'Format cell colour red for negative Yearly Difference
+        Cells(summ_row, 10).Interior.ColorIndex = 3
+    
+    End If
     
 
 End Sub

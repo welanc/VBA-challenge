@@ -22,8 +22,9 @@ Sub Stocks():
         '-------------------------------------------------
         
         'Get last row of data (based on first column)
+        ' + 1 at end to ensure last ticker data is captured in summarised data
         Dim Last_Row As Long
-        Last_Row = Cells(Rows.Count, 1).End(xlUp).Row
+        Last_Row = Cells(Rows.Count, 1).End(xlUp).Row + 1
     
         'Set row number for summarised data, starting in row 2
         Dim Summary As Long

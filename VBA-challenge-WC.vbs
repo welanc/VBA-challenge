@@ -93,7 +93,6 @@ Sub Stocks():
                 
                 
                 'Check for different stock ticker and add new line for new ticker
-                'ElseIf Cells(i + 1, 1).Value <> Cells(i, 1).Value And Cells(i, 6).Value <> 0 Then
                 ElseIf Cells(i - 1, 1).Value <> Cells(i, 1).Value Then
                     
                     'Store Opening Price
